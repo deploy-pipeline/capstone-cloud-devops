@@ -1,0 +1,4 @@
+approvers:
+- deploy-pipeline
+reviewers:
+- deploy-pipeline

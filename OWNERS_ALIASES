@@ -1,0 +1,6 @@
+aliases:
+- deploy-pipeline
+best-approvers:
+- deploy-pipeline
+best-reviewers:
+- deploy-pipeline
