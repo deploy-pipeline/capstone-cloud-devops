@@ -4,7 +4,7 @@
 
 ## Propose and Scope the Project
 
-This projects will work with Jenkins X and AWS, Can help you automatic test/build/deploy an container app (Eg. React, Flask) to kubernetes.
+This projects will work with Jenkins X and AWS, Can help green/blue deploy an containerization app to kubernetes.
 
 ## Update Kubernetes cluster or Nodes 
 
@@ -20,6 +20,10 @@ cd aws && ./update.sh eksctl-attractive-rainbow-1571676444-nodegroup-ng-8fcc2c18
 ```
 
 Demo URL: http://capstone-cloud-devops.jx-staging.devops-capstone.de/
+
+Github Repo: 
+
+https://github.com/deploy-pipeline/capstone-cloud-devops
 
 Thanks:
 
