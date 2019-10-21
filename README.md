@@ -4,7 +4,7 @@
 
 ## Propose and Scope the Project
 
-This projects will work with Jenkins X and AWS, Can help green/blue deploy an containerization app to kubernetes.
+Green/Blue Deploy containerization app to kubernetes, work with AWS and Jenkins X.
 
 ## Update Kubernetes cluster or Nodes 
 
