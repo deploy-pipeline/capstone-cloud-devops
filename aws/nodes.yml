@@ -1,0 +1,158 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  EKS nodes (AMI family: AmazonLinux2, SSH access: false, private networking:
+  false) [created and managed by eksctl]
+Resources:
+  EgressInterCluster:
+    Type: 'AWS::EC2::SecurityGroupEgress'
+    Properties:
+      Description: >-
+        Allow control plane to communicate with worker nodes in group
+        ng-8fcc2c18 (kubelet and workload TCP ports)
+      DestinationSecurityGroupId: !Ref SG
+      FromPort: 1025
+      GroupId: !ImportValue 'eksctl-attractive-rainbow-1571676444-cluster::SecurityGroup'
+      IpProtocol: tcp
+      ToPort: 65535
+  EgressInterClusterAPI:
+    Type: 'AWS::EC2::SecurityGroupEgress'
+    Properties:
+      Description: >-
+        Allow control plane to communicate with worker nodes in group
+        ng-8fcc2c18 (workloads using HTTPS port, commonly used with extension
+        API servers)
+      DestinationSecurityGroupId: !Ref SG
+      FromPort: 443
+      GroupId: !ImportValue 'eksctl-attractive-rainbow-1571676444-cluster::SecurityGroup'
+      IpProtocol: tcp
+      ToPort: 443
+  IngressInterCluster:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      Description: >-
+        Allow worker nodes in group ng-8fcc2c18 to communicate with control
+        plane (kubelet and workload TCP ports)
+      FromPort: 1025
+      GroupId: !Ref SG
+      IpProtocol: tcp
+      SourceSecurityGroupId: !ImportValue 'eksctl-attractive-rainbow-1571676444-cluster::SecurityGroup'
+      ToPort: 65535
+  IngressInterClusterAPI:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      Description: >-
+        Allow worker nodes in group ng-8fcc2c18 to communicate with control
+        plane (workloads using HTTPS port, commonly used with extension API
+        servers)
+      FromPort: 443
+      GroupId: !Ref SG
+      IpProtocol: tcp
+      SourceSecurityGroupId: !ImportValue 'eksctl-attractive-rainbow-1571676444-cluster::SecurityGroup'
+      ToPort: 443
+  IngressInterClusterCP:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      Description: >-
+        Allow control plane to receive API requests from worker nodes in group
+        ng-8fcc2c18
+      FromPort: 443
+      GroupId: !ImportValue 'eksctl-attractive-rainbow-1571676444-cluster::SecurityGroup'
+      IpProtocol: tcp
+      SourceSecurityGroupId: !Ref SG
+      ToPort: 443
+  NodeGroup:
+    Type: 'AWS::AutoScaling::AutoScalingGroup'
+    Properties:
+      LaunchTemplate:
+        LaunchTemplateName: !Sub '${AWS::StackName}'
+        Version: !GetAtt NodeGroupLaunchTemplate.LatestVersionNumber
+      MaxSize: '2'
+      MinSize: '2'
+      Tags:
+        - Key: Name
+          PropagateAtLaunch: 'true'
+          Value: attractive-rainbow-1571676444-ng-8fcc2c18-Node
+        - Key: kubernetes.io/cluster/attractive-rainbow-1571676444
+          PropagateAtLaunch: 'true'
+          Value: owned
+      VPCZoneIdentifier: !Split
+        - ','
+        - !ImportValue 'eksctl-attractive-rainbow-1571676444-cluster::SubnetsPublic'
+    UpdatePolicy:
+      AutoScalingRollingUpdate:
+        MaxBatchSize: '1'
+        MinInstancesInService: '0'
+  NodeGroupLaunchTemplate:
+    Type: 'AWS::EC2::LaunchTemplate'
+    Properties:
+      LaunchTemplateData:
+        BlockDeviceMappings:
+          - DeviceName: /dev/xvda
+            Ebs:
+              Encrypted: false
+              VolumeSize: 20
+              VolumeType: gp2
+        IamInstanceProfile:
+          Arn: !GetAtt NodeInstanceProfile.Arn
+        ImageId: ami-05d586e6f773f6abf
+        InstanceType: m5.large
+        NetworkInterfaces:
+          - AssociatePublicIpAddress: true
+            DeviceIndex: 0
+            Groups:
+              - !ImportValue >-
+                eksctl-attractive-rainbow-1571676444-cluster::SharedNodeSecurityGroup
+              - !Ref SG
+        UserData: >-
+          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
+      LaunchTemplateName: !Sub '${AWS::StackName}'
+  NodeInstanceProfile:
+    Type: 'AWS::IAM::InstanceProfile'
+    Properties:
+      Path: /
+      Roles:
+        - !Ref NodeInstanceRole
+  NodeInstanceRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action:
+              - 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+        Version: 2012-10-17
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy'
+        - 'arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy'
+        - 'arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPowerUser'
+      Path: /
+  SG:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: >-
+        Communication between the control plane and worker nodes in group
+        ng-8fcc2c18
+      Tags:
+        - Key: kubernetes.io/cluster/attractive-rainbow-1571676444
+          Value: owned
+        - Key: Name
+          Value: !Sub '${AWS::StackName}/SG'
+      VpcId: !ImportValue 'eksctl-attractive-rainbow-1571676444-cluster::VPC'
+Outputs:
+  FeatureLocalSecurityGroup:
+    Value: true
+  FeaturePrivateNetworking:
+    Value: false
+  FeatureSharedSecurityGroup:
+    Value: true
+  InstanceProfileARN:
+    Export:
+      Name: !Sub '${AWS::StackName}::InstanceProfileARN'
+    Value: !GetAtt NodeInstanceProfile.Arn
+  InstanceRoleARN:
+    Export:
+      Name: !Sub '${AWS::StackName}::InstanceRoleARN'
+    Value: !GetAtt NodeInstanceRole.Arn
